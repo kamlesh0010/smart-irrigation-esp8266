@@ -1,7 +1,26 @@
+/****************************************************
+ * SMART IRRIGATION SYSTEM – ESP8266 + BLYNK
+ * Author: Kamlesh
+ * Description:
+ *  - Soil moisture–based automatic irrigation
+ *  - Manual / Auto mode via Blynk
+ *  - DHT11 temperature & humidity monitoring
+ ****************************************************/
+
+// -------- BLYNK CONFIG (USER MUST CHANGE) --------
+#define BLYNK_TEMPLATE_ID   "YOUR_TEMPLATE_ID"
+#define BLYNK_TEMPLATE_NAME "SMART IRRIGATION WITH TEMP"
+#define BLYNK_AUTH_TOKEN    "YOUR_AUTH_TOKEN"
+
+// -------- WIFI CONFIG (USER MUST CHANGE) --------
+char ssid[] = "YOUR_WIFI_NAME";
+char pass[] = "YOUR_WIFI_PASSWORD";
+
+// ------------------------------------------------
+
 #include <ESP8266WiFi.h>
 #include <BlynkSimpleEsp8266.h>
 #include <DHT.h>
-#include "secrets.h"   // <-- credentials are here
 
 // Pins
 #define SOIL_PIN   A0
@@ -28,7 +47,7 @@ bool autoMode = true;
 #define VPIN_HUM      V5
 #define VPIN_SOIL_TH  V6
 
-// Auto / Manual switch
+// Auto / Manual mode switch
 BLYNK_WRITE(VPIN_MODE) {
   autoMode = param.asInt();
 }
@@ -40,7 +59,7 @@ BLYNK_WRITE(VPIN_RELAY) {
   }
 }
 
-// Soil threshold slider
+// Soil moisture threshold slider
 BLYNK_WRITE(VPIN_SOIL_TH) {
   soilThreshold = param.asInt();
 }
@@ -53,7 +72,7 @@ void irrigationTask() {
   moisturePercent = map(soilValue, 1023, 0, 0, 100);
   Blynk.virtualWrite(VPIN_SOIL, moisturePercent);
 
-  // DHT11
+  // DHT11 readings
   humidity = dht.readHumidity();
   temperature = dht.readTemperature();
 
@@ -62,7 +81,7 @@ void irrigationTask() {
     Blynk.virtualWrite(VPIN_HUM, humidity);
   }
 
-  // AUTO IRRIGATION (soil-based)
+  // AUTO IRRIGATION (soil-based logic)
   if (autoMode) {
     if (moisturePercent < soilThreshold) {
       digitalWrite(RELAY_PIN, LOW);   // Pump ON
@@ -71,7 +90,7 @@ void irrigationTask() {
     }
   }
 
-  // Debug
+  // Debug output
   Serial.print("Soil: ");
   Serial.print(moisturePercent);
   Serial.print("% | Threshold: ");
@@ -89,9 +108,9 @@ void setup() {
   digitalWrite(RELAY_PIN, HIGH); // Pump OFF
 
   dht.begin();
-
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
+  // Run every 2 seconds
   timer.setInterval(2000L, irrigationTask);
 }
 
